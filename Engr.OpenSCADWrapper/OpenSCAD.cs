@@ -1,17 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Engr.OpenSCADWrapper
 {
     public class OpenSCAD
     {
         private string _processFileName;
-        public OpenSCAD(string processFileName = @"C:\Program Files\OpenSCAD\openscad.com")
+        public OpenSCAD(string processFileName = @"C:\Program Files\OpenSCAD\openscad")
         {
             _processFileName = processFileName;
         }
@@ -33,13 +29,14 @@ namespace Engr.OpenSCADWrapper
             }
         }
 
-
         public Stream Generate(string code, OutputType type = OutputType.STL)
         {
-            using (var input = new TempFile("cad"))
+            using (var input = new TempFile("scad"))
             using (var output = new TempFile(type))
             {
-                return new MemoryStream( File.ReadAllBytes(output.FilePath));
+                input.Write(code);
+                Run(String.Format("-o \"{0}\" \"{1}\"", output.FilePath, input.FilePath));
+                return new MemoryStream(File.ReadAllBytes(output.FilePath));
             }
         }
     }
@@ -56,11 +53,21 @@ namespace Engr.OpenSCADWrapper
         public TempFile(string ext)
         {
             FilePath = String.Format("{0}{1}.{2}", Path.GetTempPath(), Guid.NewGuid(), ext.ToLower());
-            File.Create(FilePath);
+            File.Create(FilePath).Dispose();
+        }
+
+        public void Write(string text)
+        {
+          
+            using (StreamWriter sw = new StreamWriter(FilePath))
+            {
+                sw.Write(text);
+            }
         }
 
         public void Dispose()
         {
+
             File.Delete(FilePath);
         }
     }
